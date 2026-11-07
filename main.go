@@ -3,18 +3,28 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
+//updated product struct to
+//fetch products by id
+
 type Product struct {
-	Name  string
-	Price float64
+	//json encoders to use lowercase id
+	//instead of upper case ID
+	ID    int     `json:"id"`
+	Name  string  `json:"name"`
+	Price float64 `json:"price"`
 }
 
 var products = []Product{
-	{Name: "Headphones", Price: 79.99},
-	{Name: "Keyboard", Price: 49.99},
+	{ID: 1, Name: "Headphones", Price: 79.99},
+	{ID: 2, Name: "Keyboard", Price: 49.99},
 }
+
+// global counter to products slice
+var nextProductID = 3
 
 // handler function for health and product request
 // has response writer and request as parameters
@@ -43,6 +53,8 @@ func createProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//append the product in go slice
+	newProduct.ID = nextProductID
+	nextProductID++
 	products = append(products, newProduct)
 	//means server succesfully created a product
 	//status 201
@@ -57,19 +69,39 @@ func productsHandler(w http.ResponseWriter, r *http.Request) {
 		createProductHandler(w, r)
 		return
 	}
+	path := strings.TrimSuffix(r.URL.Path, "/")
+	//now for fetching a particular product
+	if path != "/products" {
+		idStr := strings.TrimPrefix(path, "/products/")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.Error(w, "Invalid Product ID", http.StatusBadRequest)
+			return
+		}
+		for _, product := range products {
+			if product.ID == id {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(product)
+				return
+			}
+		}
+		http.Error(w, "Product not found", http.StatusNotFound)
+		return
+	}
 	//tells cleint that im sending json
 	//creates json encoder that writes directly to the response
 	w.Header().Set("Content-Type", "application/json")
 	//converts the slice into JSON and sends it
 	json.NewEncoder(w).Encode(products)
-
 }
 
 func main() {
 	//when request comes for /health and /product rep
 	//it calls the resp function
 	http.HandleFunc("/health", healthhandler)
+	//2 different paths for the exact and /id paths
 	http.HandleFunc("/products", productsHandler)
+	http.HandleFunc("/products/", productsHandler)
 	//runs on 8080 port
 	http.ListenAndServe(":8080", nil)
 }
