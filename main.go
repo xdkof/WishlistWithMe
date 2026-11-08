@@ -50,7 +50,7 @@ func healthhandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Wishlist with me API is running \n"))
 }
 
-// It is /PUT ie add a product
+// It is /POST ie add a product
 func createProductHandler(w http.ResponseWriter, r *http.Request) {
 	var newProduct Product
 	//r.Body is data sent with the request
@@ -98,7 +98,7 @@ func getProductHandler(w http.ResponseWriter, r *http.Request, id int) {
 	http.Error(w, "Product not found", http.StatusNotFound)
 }
 
-// It is /POST ie updates an already present product
+// It is /PUT ie updates an already present product
 func updateProductHandler(w http.ResponseWriter, r *http.Request, id int) {
 	var updatedProduct Product
 	err := json.NewDecoder(r.Body).Decode(&updatedProduct)
@@ -110,7 +110,7 @@ func updateProductHandler(w http.ResponseWriter, r *http.Request, id int) {
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
-	//u get product id from the json
+	//you get id from the url
 	for i, product := range products {
 		if product.ID == id {
 			updatedProduct.ID = id
@@ -139,6 +139,7 @@ func deleteProductHandler(w http.ResponseWriter, r *http.Request, id int) {
 // Function that handles all the Product related requests
 func productsHandler(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimSuffix(r.URL.Path, "/")
+	//to identify get and post methods
 	if path == "/products" {
 		switch r.Method {
 		case http.MethodGet:
@@ -150,12 +151,15 @@ func productsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	//validate the id in the product url here
 	idStr := strings.TrimPrefix(path, "/products/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid Product ID", http.StatusBadRequest)
 		return
 	}
+	//for id related operations
+	//you get the id from the url in this case
 	switch r.Method {
 	case http.MethodGet:
 		getProductHandler(w, r, id)
